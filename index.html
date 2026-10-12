@@ -90,7 +90,8 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .crow.hm{padding-top:calc(22px*var(--s))}
 .meas{position:relative;display:flex;box-sizing:border-box;border-inline-start:1.5px solid var(--line)}
 .mt{position:absolute;top:calc(-22px*var(--s));right:6px;direction:ltr;white-space:nowrap;font-size:calc(14px*var(--s));font-weight:700;line-height:1.25;color:var(--accent-ink);background:var(--accent-bg);padding:1px 7px;border-radius:5px}
-.chord{flex:1 1 0;min-width:0;direction:ltr;unicode-bidi:isolate;text-align:center;white-space:nowrap;font-weight:700;font-size:calc(24px*var(--s));line-height:1.45;color:var(--accent)}
+.chord{flex:1 1 0;min-width:0;direction:ltr;unicode-bidi:isolate;text-align:center;white-space:nowrap;font-weight:700;font-size:calc(24px*var(--s));line-height:1.45;color:var(--accent);background:none;border:0;padding:0;margin:0;font-family:inherit;cursor:pointer;border-radius:8px;-webkit-tap-highlight-color:transparent}
+.chord:active{background:var(--accent-bg)}
 .ly{margin:0;font-size:calc(28px*var(--s));line-height:1.45;font-weight:400;text-wrap:pretty}
 .nt{display:flex;align-items:baseline;gap:10px;padding:8px 12px;border:1.5px dashed var(--line);border-radius:10px;background:var(--surface)}
 .nt b{flex:none;font-size:13px;font-weight:700;color:var(--accent-ink);background:var(--accent-bg);padding:1px 10px;border-radius:5px}
@@ -117,6 +118,15 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .item small{font-size:14px;color:var(--muted)}
 .item svg{color:var(--accent);flex:none}
 .hint{margin:0;font-size:14px;color:var(--muted)}
+.panel h2.chname{direction:ltr;text-align:center;font-size:44px;line-height:1.1;color:var(--accent)}
+.chq{margin:0;text-align:center;font-size:16px;color:var(--muted)}
+.chnotes{margin:0;direction:ltr;text-align:center;font-size:22px;font-weight:700;letter-spacing:.02em}
+.kb svg{display:block;width:100%;height:auto;max-width:440px;margin:0 auto}
+.kw{fill:#FFFFFF;stroke:#7B8494;stroke-width:1}
+.kw.on{fill:var(--accent)}
+.kk{fill:#161A22}
+.kk.on{fill:var(--accent);stroke:#FFFFFF;stroke-width:1.5}
+.kt{font-family:var(--body);font-weight:700;font-size:11px;text-anchor:middle;fill:var(--on-accent)}
 .opt{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;padding:10px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg)}
 .opt b{display:block;font-size:18px;font-weight:700}
 .opt small{font-size:14px;color:var(--muted)}
@@ -177,6 +187,18 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
       <h2 id="sheetTitle">בחירת שיר</h2>
       <ul id="list"></ul>
       <p class="hint">שירים נוספים יתווספו לכאן.</p>
+    </div>
+  </div>
+
+  <div id="chordSheet" class="sheet" hidden>
+    <div class="scrim" data-close></div>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="chName">
+      <h2 id="chName" class="chname"></h2>
+      <p id="chQual" class="chq"></p>
+      <p id="chNotes" class="chnotes"></p>
+      <div id="kb" class="kb"></div>
+      <p id="chHint" class="hint"></p>
+      <button class="btn" type="button" data-close>סגירה</button>
     </div>
   </div>
 
@@ -456,7 +478,12 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
               var me = h('div','meas');
               me.style.width = (x.w/cap*100)+'%';
               if(x.m) me.appendChild(h('span','mt',x.m));
-              x.c.forEach(function(c){ me.appendChild(h('span','chord',tr(c))); });
+              x.c.forEach(function(c){
+                var cb = h('button','chord',tr(c));
+                cb.type = 'button';
+                cb.setAttribute('aria-label','האקורד '+tr(c)+', הצגה על המקלדת');
+                me.appendChild(cb);
+              });
               r.appendChild(me);
             });
             ln.appendChild(r);
@@ -556,6 +583,103 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     rt = setTimeout(function(){
       if(window.innerWidth !== lastW){ lastW = window.innerWidth; rerenderKeepPlace(); }
     },150);
+  });
+
+  /* chord keyboard: tapping a chord shows its notes on a two-octave piano */
+  var QUAL = {
+    '':{iv:[0,4,7],n:'מז׳ור'},
+    'm':{iv:[0,3,7],n:'מינור'},
+    'maj7':{iv:[0,4,7,11],n:'מז׳ור 7'},
+    'm7':{iv:[0,3,7,10],n:'מינור 7'},
+    '7':{iv:[0,4,7,10],n:'דומיננטה 7'},
+    'sus4':{iv:[0,5,7],n:'sus4'},
+    'sus2':{iv:[0,2,7],n:'sus2'},
+    'susb9':{iv:[0,5,7,13],n:'sus4 עם ♭9'},
+    '9':{iv:[0,4,7,10,14],n:'דומיננטה 9'},
+    'm9':{iv:[0,3,7,10,14],n:'מינור 9'},
+    'maj9':{iv:[0,4,7,11,14],n:'מז׳ור 9'},
+    'add9':{iv:[0,4,7,14],n:'add9'},
+    '6':{iv:[0,4,7,9],n:'6'},
+    'm6':{iv:[0,3,7,9],n:'מינור 6'},
+    'dim':{iv:[0,3,6],n:'מוקטן'},
+    'ø':{iv:[0,3,6,10],n:'חצי מוקטן'},
+    'aug':{iv:[0,4,8],n:'מוגדל'}
+  };
+  var ALIAS = {'min':'m','M7':'maj7','Maj7':'maj7','4':'sus4','sus':'sus4','sus-9':'susb9','sus-b9':'susb9','m7/9':'m9','m7b5':'ø','+':'aug'};
+  var HINTS = {
+    '4':'מוצג כ־sus4: רביעית במקום שלישית.',
+    'sus-9':'מוצג כ־sus4 עם ♭9.',
+    '9':'מוצג כדומיננטה 9: אקורד 7 ועוד 9.',
+    'm7/9':'מוצג כמינור 9: אקורד m7 ועוד 9.'
+  };
+  var WHITE = [0,2,4,5,7,9,11];
+  var BLACK = [[1,1],[3,2],[6,4],[8,5],[10,6]];
+
+  function svgEl(tag,attrs){
+    var e = document.createElementNS('http://www.w3.org/2000/svg',tag);
+    for(var k in attrs) e.setAttribute(k,attrs[k]);
+    return e;
+  }
+
+  function buildKeyboard(set, names){
+    var W = 24, H = 112, BH = 68, BW = 15;
+    var svg = svgEl('svg',{viewBox:'0 0 '+(14*W)+' '+H, role:'img'});
+    svg.setAttribute('aria-label','מקלדת פסנתר, הקלידים המסומנים: '+set.map(function(i){ return names[i%12]; }).join(' '));
+    var o, i;
+    for(o=0;o<2;o++){
+      for(i=0;i<7;i++){
+        var idx = o*12+WHITE[i], on = set.indexOf(idx) >= 0;
+        svg.appendChild(svgEl('rect',{x:(o*7+i)*W+0.5, y:0.5, width:W-1, height:H-1, rx:3, 'class':'kw'+(on?' on':'')}));
+        if(on){
+          var t = svgEl('text',{x:(o*7+i)*W+W/2, y:H-10, 'class':'kt'});
+          t.textContent = names[idx%12];
+          svg.appendChild(t);
+        }
+      }
+    }
+    for(o=0;o<2;o++){
+      BLACK.forEach(function(b){
+        var idx = o*12+b[0], on = set.indexOf(idx) >= 0, x = (o*7+b[1])*W - BW/2;
+        svg.appendChild(svgEl('rect',{x:x, y:0.5, width:BW, height:BH, rx:2.5, 'class':'kk'+(on?' on':'')}));
+        if(on){
+          var t = svgEl('text',{x:x+BW/2, y:BH-8, 'class':'kt'});
+          t.textContent = names[idx%12];
+          svg.appendChild(t);
+        }
+      });
+    }
+    return svg;
+  }
+
+  function openChord(text, from){
+    var m = text.match(/^([A-G])([#b]?)((?:[^\/]|\/(?=\d))*)(?:\/([A-G])([#b]?))?$/);
+    if(!m) return;
+    var root = (BASE[m[1]] + (m[2]==='#'?1:(m[2]==='b'?-1:0)) + 12) % 12;
+    var suffix = m[3];
+    var key = ALIAS.hasOwnProperty(suffix) ? ALIAS[suffix] : suffix;
+    var q = QUAL.hasOwnProperty(key) ? QUAL[key] : null;
+    var iv = q ? q.iv : [0];
+    var hint = HINTS.hasOwnProperty(suffix) ? HINTS[suffix] : (q ? '' : 'לא זיהיתי את סוג האקורד, מוצג הצליל הבסיסי בלבד.');
+    var bass = m[4] ? (BASE[m[4]] + (m[5]==='#'?1:(m[5]==='b'?-1:0)) + 12) % 12 : null;
+    var base = (bass !== null) ? root+12 : root;
+    var set = iv.map(function(x){ return base+x; });
+    if(bass !== null) set.push(bass);
+    set = set.map(function(x){ while(x>23) x -= 12; return x; });
+    set = set.filter(function(x,i){ return set.indexOf(x) === i; }).sort(function(a,b){ return a-b; });
+    var names = (useFlat() || m[2]==='b') ? FLAT : SHARP;
+    $('chName').textContent = text;
+    $('chQual').textContent = (q ? q.n : '') + (bass !== null ? (q ? ' · ' : '') + 'בס ' + names[bass] : '');
+    $('chNotes').textContent = set.map(function(x){ return names[x%12]; }).join('  ·  ');
+    var kb = $('kb');
+    kb.textContent = '';
+    kb.appendChild(buildKeyboard(set,names));
+    $('chHint').textContent = hint;
+    $('chHint').hidden = !hint;
+    openSheetEl($('chordSheet'), from, '.btn');
+  }
+  main.addEventListener('click',function(e){
+    var b = e.target.closest ? e.target.closest('.chord') : null;
+    if(b) openChord(b.textContent, b);
   });
 
   /* song picker and settings sheets */
