@@ -1,15 +1,15 @@
 /* Offline support: the page and icons are cached on install; the page itself is fetched fresh
    when online (so new songs arrive) and falls back to the cache when offline. Fonts are cached as they load. */
-var CACHE = 'hm-v3';
+var CACHE = 'hm-v4';
 var ASSETS = [
   'icons/logo.jpg',
   './',
   'index.html',
   'manifest.webmanifest',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/icon-maskable-512.png',
-  'icons/apple-touch-icon.png'
+  'icons/icon-192-v2.png',
+  'icons/icon-512-v2.png',
+  'icons/icon-maskable-512-v2.png',
+  'icons/apple-touch-icon-v2.png'
 ];
 
 self.addEventListener('install', function (e) {
