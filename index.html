@@ -61,6 +61,8 @@ svg{display:block}
 .song{--s:1;max-width:720px;margin:0 auto;padding:22px 20px 150px}
 .wrap{display:flex;flex-direction:column;gap:28px}
 
+.brand{display:flex;justify-content:center;background:#FFFFFF;border:1px solid var(--line);border-radius:16px;padding:12px}
+.brand img{display:block;width:auto;height:auto;max-width:100%;max-height:180px}
 .keybar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
 .kinfo{display:flex;flex-direction:column;min-width:0}
 .klab{font-size:13px;color:var(--muted);line-height:1.3}
@@ -324,6 +326,13 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 
     var wrap = h('div','wrap');
     main.appendChild(wrap);
+
+    var brand = h('div','brand');
+    var logo = document.createElement('img');
+    logo.src = 'icons/logo.jpg';
+    logo.alt = 'ישיבת הר עציון לצעירים – ההרכב המוזיקלי';
+    brand.appendChild(logo);
+    wrap.appendChild(brand);
 
     wrap.appendChild(buildKeybar());
 

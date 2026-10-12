@@ -1,7 +1,8 @@
 /* Offline support: the page and icons are cached on install; the page itself is fetched fresh
    when online (so new songs arrive) and falls back to the cache when offline. Fonts are cached as they load. */
-var CACHE = 'hm-v2';
+var CACHE = 'hm-v3';
 var ASSETS = [
+  'icons/logo.jpg',
   './',
   'index.html',
   'manifest.webmanifest',
