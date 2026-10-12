@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<!--PWA-START-->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1117" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="הרכב">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<!--PWA-END-->
+<title>הרכב מוזיקלי תשפ״ז</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Heebo:wght@400;500;700&display=swap">
+<style>
+/*PWA-START*/
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+[hidden]{display:none!important}
+/*PWA-END*/
+/* Layout: one long scrolling chart per song, sticky song picker and settings on top, key and transpose controls first in the song, fixed play and size controls at the bottom, chords as an aligned grid above each lyric line. */
+:root{
+  --bg:#F4F6FA; --surface:#FFFFFF; --ink:#11161F; --muted:#5B6577; --line:#D5DBE6;
+  --accent:#1F4FD8; --accent-bg:#E3EAFB; --accent-ink:#17389C; --on-accent:#FFFFFF;
+  --display:'Frank Ruhl Libre',Georgia,'Times New Roman',serif;
+  --body:'Heebo','Arial Hebrew',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1117; --surface:#161C26; --ink:#E9EDF4; --muted:#9AA5B8; --line:#2A3342;
+    --accent:#8DB0FF; --accent-bg:#1B2742; --accent-ink:#B9CDFF; --on-accent:#0D1117;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1117; --surface:#161C26; --ink:#E9EDF4; --muted:#9AA5B8; --line:#2A3342;
+  --accent:#8DB0FF; --accent-bg:#1B2742; --accent-ink:#B9CDFF; --on-accent:#0D1117;
+  color-scheme:dark;
+}
+html{scroll-padding-top:96px}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);direction:rtl;-webkit-text-size-adjust:100%}
+button{font-family:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+svg{display:block}
+
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:720px;margin:0 auto;padding:10px 20px;display:flex;gap:10px}
+.pick{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:6px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--ink);text-align:right}
+.pick-txt{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
+.pick small{font-size:13px;color:var(--muted);line-height:1.3}
+.pick strong{font-family:var(--display);font-size:22px;font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.pick svg{flex:none;color:var(--accent)}
+.iconbtn{flex:none;width:58px;height:58px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:grid;place-items:center}
+
+.song{--s:1;max-width:720px;margin:0 auto;padding:22px 20px 150px}
+.wrap{display:flex;flex-direction:column;gap:28px}
+
+.keybar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.kinfo{display:flex;flex-direction:column;min-width:0}
+.klab{font-size:13px;color:var(--muted);line-height:1.3}
+.kdelta{font-size:14px;font-weight:500;line-height:1.3}
+.step output.kname{min-width:62px;text-align:center;direction:ltr;font-family:var(--display);font-weight:700;font-size:34px;line-height:1;color:var(--accent)}
+.btn{min-height:44px;padding:6px 16px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;font-weight:500}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn:disabled{opacity:.4;cursor:default}
+
+.head{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.eyebrow{margin:0 0 4px;font-size:15px;color:var(--muted)}
+h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw,64px);line-height:1.05;text-wrap:balance}
+.meter{flex:none;direction:ltr;display:flex;flex-direction:column;align-items:center;font-family:var(--display);font-weight:700;font-size:44px;line-height:.95;color:var(--accent);padding-inline-start:18px;border-inline-start:1.5px solid var(--line)}
+.order{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 0;border-block:1px solid var(--line)}
+.olab{font-size:14px;font-weight:700;color:var(--muted);margin-inline-end:4px}
+.chip{min-height:40px;padding:4px 16px;border-radius:99px;border:1.5px solid var(--ink);background:transparent;color:var(--ink);font-size:16px;font-weight:500}
+.arr{color:var(--muted);font-size:18px}
+
+.sec{display:flex;flex-direction:column;gap:18px;scroll-margin-top:96px}
+.lb{display:flex;align-items:center;gap:12px}
+.lb span{font-weight:700;font-size:16px;color:var(--accent-ink);background:var(--accent-bg);padding:4px 16px;border-radius:6px;white-space:nowrap}
+.lb i{flex:1;height:1px;background:var(--line)}
+.ln{display:flex;flex-direction:column;gap:2px}
+.crow{display:flex}
+.chord{flex:none;direction:ltr;unicode-bidi:isolate;text-align:center;white-space:nowrap;font-weight:700;font-size:calc(24px*var(--s));line-height:1.45;color:var(--accent)}
+.ly{margin:0;font-size:calc(28px*var(--s));line-height:1.45;font-weight:400;text-wrap:pretty}
+.nt{display:flex;align-items:baseline;gap:10px;padding:8px 12px;border:1.5px dashed var(--line);border-radius:10px;background:var(--surface)}
+.nt b{flex:none;font-size:13px;font-weight:700;color:var(--accent-ink);background:var(--accent-bg);padding:1px 10px;border-radius:5px}
+.nt span{font-size:calc(20px*var(--s));line-height:1.5;color:var(--ink)}
+
+.bar{position:fixed;inset-inline:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar-in{max-width:720px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.play{flex:none;width:60px;height:60px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);display:grid;place-items:center}
+.grp{display:flex;flex-direction:column;align-items:center;gap:2px}
+.gl{font-size:12px;color:var(--muted);line-height:1.2}
+.step{display:flex;align-items:center;gap:4px}
+.step button{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:24px;line-height:1;display:grid;place-items:center}
+.step button:disabled{opacity:.4;cursor:default}
+.step output{min-width:26px;text-align:center;font-weight:700;font-size:17px;font-variant-numeric:tabular-nums}
+
+.sheet{position:fixed;inset:0;z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.panel{position:relative;width:100%;max-width:720px;max-height:85%;overflow:auto;background:var(--surface);border-radius:18px 18px 0 0;padding:22px 20px calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
+.panel h2{margin:0;font-family:var(--display);font-size:24px;font-weight:700}
+.panel ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.item{width:100%;min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);text-align:right}
+.item[aria-current="true"]{border-color:var(--accent);background:var(--accent-bg)}
+.item b{display:block;font-family:var(--display);font-size:22px;font-weight:700}
+.item small{font-size:14px;color:var(--muted)}
+.item svg{color:var(--accent);flex:none}
+.hint{margin:0;font-size:14px;color:var(--muted)}
+.opt{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;padding:10px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg)}
+.opt b{display:block;font-size:18px;font-weight:700}
+.opt small{font-size:14px;color:var(--muted)}
+.sw{flex:none;appearance:none;-webkit-appearance:none;position:relative;width:54px;height:32px;margin:0;border-radius:99px;background:var(--line);cursor:pointer;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:26px;height:26px;border-radius:50%;background:var(--surface);box-shadow:0 0 0 1px var(--muted);transition:transform .15s}
+.sw:checked{background:var(--accent)}
+.sw:checked::after{transform:translateX(-22px);box-shadow:none}
+.inst{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:14px 16px;border:1.5px solid var(--line);border-radius:12px}
+.inst b{font-size:18px;font-weight:700}
+.inst small{font-size:14px;color:var(--muted);line-height:1.5}
+@media (prefers-reduced-motion: reduce){.sw,.sw::after{transition:none}}
+</style>
+</head>
+<body>
+<div id="app" dir="rtl" lang="he">
+  <header class="top">
+    <div class="top-in">
+      <button id="pick" class="pick" type="button" aria-haspopup="dialog" aria-controls="sheet">
+        <span class="pick-txt"><small>הרכב מוזיקלי תשפ״ז</small><strong id="curTitle"></strong></span>
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <button id="gear" class="iconbtn" type="button" aria-haspopup="dialog" aria-controls="settings" aria-label="הגדרות">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="song" class="song" aria-live="polite"></main>
+
+  <div class="bar" role="group" aria-label="בקרות קריאה">
+    <div class="bar-in">
+      <button id="play" class="play" type="button" aria-label="הפעלת גלילה אוטומטית">
+        <svg id="icPlay" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 001.5.86l10.5-6.5a1 1 0 000-1.72L9.5 4.64A1 1 0 008 5.5z"/></svg>
+        <svg id="icPause" width="30" height="30" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" hidden><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
+      </button>
+      <div class="grp">
+        <span class="gl" id="spLabel">מהירות</span>
+        <div class="step" role="group" aria-labelledby="spLabel">
+          <button id="spMinus" type="button" aria-label="האטה">−</button>
+          <output id="spVal" aria-live="polite">3</output>
+          <button id="spPlus" type="button" aria-label="האצה">+</button>
+        </div>
+      </div>
+      <div class="grp">
+        <span class="gl" id="szLabel">גודל</span>
+        <div class="step" role="group" aria-labelledby="szLabel">
+          <button id="szMinus" type="button" aria-label="הקטנת הטקסט">−</button>
+          <output id="szVal" aria-live="polite">100</output>
+          <button id="szPlus" type="button" aria-label="הגדלת הטקסט">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="sheet" class="sheet" hidden>
+    <div class="scrim" data-close></div>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <h2 id="sheetTitle">בחירת שיר</h2>
+      <ul id="list"></ul>
+      <p class="hint">שירים נוספים יתווספו לכאן.</p>
+    </div>
+  </div>
+
+  <div id="settings" class="sheet" hidden>
+    <div class="scrim" data-close></div>
+    <div class="panel" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+      <h2 id="setTitle">הגדרות</h2>
+      <label class="opt" for="optNotes">
+        <span><b>הצג הערות</b><small>הערות נגינה שנכתבו בתוך השיר</small></span>
+        <input type="checkbox" id="optNotes" class="sw" checked>
+      </label>
+      <!--PWA-START-->
+      <div class="inst" id="instBox" hidden>
+        <b>התקנה כאפליקציה</b>
+        <small id="instHint"></small>
+        <button id="installBtn" class="btn pri" type="button" hidden>התקנת האפליקציה</button>
+      </div>
+      <!--PWA-END-->
+      <button class="btn" type="button" data-close>סגירה</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var SONGS = [
+    {
+      id:'ten-tal-umatar',
+      title:'תן טל ומטר',
+      meter:'3/4',
+      key:'E',
+      structure:['פתיחה','פזמון 1','בית','פזמון 2','בית','פזמון 1'],
+      sections:[
+        {name:'פתיחה', label:'פתיחה · נגינה', lines:[
+          {c:['E','A','D','Em','Cmaj7','A4','Bm7','E']},
+          {c:['Em','A','D','Em','G','D','Bm7','E']}
+        ]},
+        {name:'פזמון 1', lines:[
+          {c:['E','A','D','Em'], l:'א-ל חי יפתח אוצרות שמיים'},
+          {c:['Cmaj7','A4','Bm7','E'], l:'ישב רוחו יזלו מים'},
+          {c:['Em','A','D','Em'], l:'א-ל חי יפתח אוצרות שמיים'},
+          {c:['G','D','Bm7','E'], l:'ישב רוחו יזלו מים'}
+        ]},
+        {name:'בית', lines:[
+          {c:['E','A','G','A','D','Bm7','Esus-9','E'], l:'ותן טל ומטר לברכה על פני האדמה'},
+          {c:['Em','A','D','Cmaj7','Cmaj7','A9','Bm7','Esus-9','E'], l:'ושבענו מטובה וברך שנתנו כשנים הטובות לברכה'}
+        ]},
+        {name:'פזמון 2', lines:[
+          {c:['E','A','D','Em','Cmaj7','A4','Bm7','E'], l:'ברך עלינו ה׳ אלוקינו את השנה הזאת ואת כל תבואתה לטובה'},
+          {c:['Em','A','D','Em','G','D','Bm7','E'], l:'ותן טל טל ומטר לברכה על פני האדמה'}
+        ]}
+      ]
+    }
+  ];
+  /* A section line is {c:[chords], l:'lyric', n:'note'}; a standalone note is {note:'text'}; song.note shows under the title. Notes appear only while "הצג הערות" is on. */
+
+  var PPS = [8,14,20,28,38,50,64,80];
+  var SCALES = [0.85,1,1.15,1.3,1.5];
+  var SHARP = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  var FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+  var BASE = {C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+
+  function $(id){ return document.getElementById(id); }
+  function store(k,v){ try{ if(v===undefined) return localStorage.getItem(k); localStorage.setItem(k,String(v)); }catch(e){ return null; } }
+  function clampInt(v,lo,hi,d){ var n=parseInt(v,10); if(isNaN(n)) return d; return Math.min(hi,Math.max(lo,n)); }
+  function h(tag,cls,text){ var e=document.createElement(tag); if(cls) e.className=cls; if(text!==undefined) e.textContent=text; return e; }
+  function signed(n){ return (n>0?'+':(n<0?'−':''))+Math.abs(n); }
+
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var speed = clampInt(store('hm-speed'),0,7,2);
+  var scaleI = clampInt(store('hm-scale'),0,4,1);
+  var showNotes = store('hm-notes') !== '0';
+  var song = SONGS[0];
+  var savedId = store('hm-song');
+  for(var i=0;i<SONGS.length;i++){ if(SONGS[i].id===savedId) song = SONGS[i]; }
+  var offset = clampInt(store('hm-tr-'+song.id),-11,11,0);
+
+  var main = $('song');
+  var playing = false, raf = 0, last = 0, acc = 0, wl = null;
+
+  /* transposition */
+  function rootPc(key){ var m = key.match(/^([A-G])([#b]?)/); return (BASE[m[1]] + (m[2]==='#'?1:(m[2]==='b'?-1:0)) + 12) % 12; }
+  function useFlat(){ return [0,2,3,5,7,10].indexOf((rootPc(song.key)+offset+120)%12) >= 0; }
+  function tr(ch){
+    if(!offset) return ch;
+    var m = ch.match(/^([A-G])([#b]?)([^\/]*)(?:\/([A-G])([#b]?))?$/);
+    if(!m) return ch;
+    var names = useFlat() ? FLAT : SHARP;
+    function sh(r,a){ return names[(BASE[r] + (a==='#'?1:(a==='b'?-1:0)) + offset + 120) % 12]; }
+    return sh(m[1],m[2]) + m[3] + (m[4] ? '/'+sh(m[4],m[5]) : '');
+  }
+  function maxChordLen(){
+    var n = 1;
+    song.sections.forEach(function(s){ s.lines.forEach(function(l){ if(l.c) l.c.forEach(function(c){ var t = tr(c).length; if(t>n) n=t; }); }); });
+    return n;
+  }
+  function chordCap(w){
+    var px = 24*SCALES[scaleI];
+    return Math.max(2, Math.min(4, Math.floor(w/(px*(maxChordLen()*0.52+0.3)))));
+  }
+  function chordRows(chords, cap){
+    var rows = Math.ceil(chords.length/cap);
+    var size = Math.ceil(chords.length/rows);
+    var out = [];
+    for(var i=0;i<chords.length;i+=size) out.push(chords.slice(i,i+size));
+    return out;
+  }
+
+  function noteEl(text){
+    var d = h('div','nt');
+    d.appendChild(h('b',null,'הערה'));
+    d.appendChild(h('span',null,text));
+    return d;
+  }
+
+  function buildKeybar(){
+    var bar = h('section','keybar');
+    bar.setAttribute('aria-label','מפתח והעברת טונים');
+    var info = h('div','kinfo');
+    info.appendChild(h('span','klab','מפתח'));
+    info.appendChild(h('span','kdelta', offset===0 ? 'מקורי' : 'מ־'+song.key+' · '+signed(offset)));
+    bar.appendChild(info);
+    var step = h('div','step');
+    var minus = h('button',null,'−'); minus.type='button'; minus.id='trMinus'; minus.setAttribute('aria-label','הורדת חצי טון');
+    minus.disabled = offset<=-11;
+    var key = h('output','kname',tr(song.key)); key.setAttribute('aria-live','polite');
+    var plus = h('button',null,'+'); plus.type='button'; plus.id='trPlus'; plus.setAttribute('aria-label','העלאת חצי טון');
+    plus.disabled = offset>=11;
+    step.appendChild(minus); step.appendChild(key); step.appendChild(plus);
+    bar.appendChild(step);
+    var reset = h('button','btn','איפוס'); reset.type='button'; reset.id='trReset'; reset.disabled = offset===0;
+    reset.setAttribute('aria-label','חזרה למפתח המקורי');
+    bar.appendChild(reset);
+    minus.addEventListener('click',function(){ setOffset(offset-1,'trMinus'); });
+    plus.addEventListener('click',function(){ setOffset(offset+1,'trPlus'); });
+    reset.addEventListener('click',function(){ setOffset(0,'trPlus'); });
+    return bar;
+  }
+
+  function setOffset(v,focusId){
+    offset = Math.max(-11,Math.min(11,v));
+    store('hm-tr-'+song.id,offset);
+    rerenderKeepPlace(focusId);
+  }
+
+  function renderSong(){
+    main.textContent = '';
+    main.style.setProperty('--s', SCALES[scaleI]);
+    $('curTitle').textContent = song.title;
+
+    var wrap = h('div','wrap');
+    main.appendChild(wrap);
+
+    wrap.appendChild(buildKeybar());
+
+    var head = h('div','head');
+    var tt = h('div');
+    tt.appendChild(h('p','eyebrow','אקורדים ומילים'));
+    tt.appendChild(h('h1',null,song.title));
+    head.appendChild(tt);
+    var m = h('div','meter');
+    m.setAttribute('role','img');
+    m.setAttribute('aria-label','קצב '+song.meter);
+    var parts = song.meter.split('/');
+    m.appendChild(h('span',null,parts[0]));
+    m.appendChild(h('span',null,parts[1]));
+    head.appendChild(m);
+    wrap.appendChild(head);
+    if(showNotes && song.note) wrap.appendChild(noteEl(song.note));
+
+    var order = h('nav','order');
+    order.setAttribute('aria-label','סדר השיר');
+    order.appendChild(h('span','olab','סדר'));
+    song.structure.forEach(function(name,idx){
+      var b = h('button','chip',name);
+      b.type = 'button';
+      b.addEventListener('click',function(){
+        var t = document.getElementById('sec-'+idx);
+        if(t) t.scrollIntoView({behavior: reduced ? 'auto' : 'smooth', block:'start'});
+      });
+      order.appendChild(b);
+      if(idx < song.structure.length-1) order.appendChild(h('span','arr','←'));
+    });
+    wrap.appendChild(order);
+
+    var cap = chordCap(wrap.clientWidth || (window.innerWidth-40));
+    var seen = {};
+    song.structure.forEach(function(name,idx){
+      var sec = null;
+      song.sections.forEach(function(x){ if(x.name===name) sec = x; });
+      if(!sec) return;
+      var s = h('section','sec');
+      s.id = 'sec-'+idx;
+      var lb = h('div','lb');
+      lb.appendChild(h('span',null,(sec.label||sec.name) + (seen[name] ? ' · חזרה' : '')));
+      lb.appendChild(h('i'));
+      s.appendChild(lb);
+      seen[name] = true;
+      sec.lines.forEach(function(line){
+        if(line.note){ if(showNotes) s.appendChild(noteEl(line.note)); return; }
+        var ln = h('div','ln');
+        chordRows(line.c,cap).forEach(function(row){
+          var r = h('div','crow');
+          row.forEach(function(c){
+            var ce = h('span','chord',tr(c));
+            ce.style.width = (100/cap)+'%';
+            r.appendChild(ce);
+          });
+          ln.appendChild(r);
+        });
+        if(line.l) ln.appendChild(h('p','ly',line.l));
+        s.appendChild(ln);
+        if(showNotes && line.n) s.appendChild(noteEl(line.n));
+      });
+      wrap.appendChild(s);
+    });
+  }
+
+  function rerenderKeepPlace(focusId){
+    var r = window.scrollY / Math.max(1, document.documentElement.scrollHeight);
+    renderSong();
+    window.scrollTo(0, r*document.documentElement.scrollHeight);
+    if(focusId){ var f = $(focusId); if(f && !f.disabled) f.focus({preventScroll:true}); }
+  }
+
+  function updateControls(){
+    $('spVal').textContent = String(speed+1);
+    $('szVal').textContent = String(Math.round(SCALES[scaleI]*100));
+    $('spMinus').disabled = speed<=0;
+    $('spPlus').disabled = speed>=PPS.length-1;
+    $('szMinus').disabled = scaleI<=0;
+    $('szPlus').disabled = scaleI>=SCALES.length-1;
+  }
+
+  function setPlayUi(){
+    $('icPlay').hidden = playing;
+    $('icPause').hidden = !playing;
+    $('play').setAttribute('aria-label', playing ? 'עצירת הגלילה' : 'הפעלת גלילה אוטומטית');
+  }
+
+  function wake(){
+    try{
+      if(navigator.wakeLock && navigator.wakeLock.request){
+        navigator.wakeLock.request('screen').then(function(l){ wl = l; }, function(){});
+      }
+    }catch(e){}
+  }
+  function unwake(){
+    try{ if(wl){ wl.release(); wl = null; } }catch(e){}
+  }
+
+  function maxScroll(){ return document.documentElement.scrollHeight - window.innerHeight; }
+
+  function tick(t){
+    if(!playing) return;
+    var dt = Math.min((t-last)/1000, 0.1);
+    last = t;
+    acc += PPS[speed]*dt;
+    var step = Math.floor(acc);
+    if(step >= 1){
+      acc -= step;
+      window.scrollBy(0, step);
+    }
+    if(window.scrollY >= maxScroll()-1){ pause(); return; }
+    raf = requestAnimationFrame(tick);
+  }
+
+  function play(){
+    if(playing) return;
+    if(window.scrollY >= maxScroll()-4) window.scrollTo(0,0);
+    playing = true;
+    acc = 0;
+    last = performance.now();
+    setPlayUi();
+    wake();
+    raf = requestAnimationFrame(tick);
+  }
+  function pause(){
+    if(!playing) return;
+    playing = false;
+    cancelAnimationFrame(raf);
+    setPlayUi();
+    unwake();
+  }
+
+  $('play').addEventListener('click',function(){ playing ? pause() : play(); });
+  $('spMinus').addEventListener('click',function(){ if(speed>0){ speed--; store('hm-speed',speed); updateControls(); } });
+  $('spPlus').addEventListener('click',function(){ if(speed<PPS.length-1){ speed++; store('hm-speed',speed); updateControls(); } });
+  $('szMinus').addEventListener('click',function(){ if(scaleI>0){ scaleI--; store('hm-scale',scaleI); updateControls(); rerenderKeepPlace(); } });
+  $('szPlus').addEventListener('click',function(){ if(scaleI<SCALES.length-1){ scaleI++; store('hm-scale',scaleI); updateControls(); rerenderKeepPlace(); } });
+
+  window.addEventListener('touchmove',pause,{passive:true});
+  window.addEventListener('wheel',pause,{passive:true});
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='visible' && playing) wake();
+  });
+
+  var rt = 0, lastW = window.innerWidth;
+  window.addEventListener('resize',function(){
+    clearTimeout(rt);
+    rt = setTimeout(function(){
+      if(window.innerWidth !== lastW){ lastW = window.innerWidth; rerenderKeepPlace(); }
+    },150);
+  });
+
+  /* song picker and settings sheets */
+  var sheet = $('sheet'), settings = $('settings');
+  var openEl = null, opener = null;
+
+  function buildList(){
+    var ul = $('list');
+    ul.textContent = '';
+    SONGS.forEach(function(s){
+      var li = h('li');
+      var b = h('button','item');
+      b.type = 'button';
+      b.setAttribute('aria-current', s.id===song.id ? 'true' : 'false');
+      var t = h('span');
+      t.appendChild(h('b',null,s.title));
+      t.appendChild(h('small',null,'קצב '+s.meter+' · מפתח '+s.key));
+      b.appendChild(t);
+      if(s.id===song.id){
+        b.insertAdjacentHTML('beforeend','<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>');
+      }
+      b.addEventListener('click',function(){
+        pause();
+        song = s;
+        store('hm-song',s.id);
+        offset = clampInt(store('hm-tr-'+s.id),-11,11,0);
+        closeSheet();
+        renderSong();
+        window.scrollTo(0,0);
+      });
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+  }
+  function openSheetEl(el,from,focusSel){
+    pause();
+    openEl = el; opener = from;
+    el.hidden = false;
+    var f = el.querySelector(focusSel);
+    if(f) f.focus();
+  }
+  function closeSheet(){
+    if(!openEl) return;
+    openEl.hidden = true;
+    openEl = null;
+    if(opener) opener.focus();
+  }
+  $('pick').addEventListener('click',function(){ buildList(); openSheetEl(sheet,$('pick'),'.item'); });
+  $('gear').addEventListener('click',function(){ openSheetEl(settings,$('gear'),'#optNotes'); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-close]'),function(e){ e.addEventListener('click',closeSheet); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeSheet(); });
+
+  $('optNotes').checked = showNotes;
+  $('optNotes').addEventListener('change',function(){
+    showNotes = $('optNotes').checked;
+    store('hm-notes', showNotes ? '1' : '0');
+    rerenderKeepPlace();
+  });
+
+  /*PWA-START*/
+  var deferred = null;
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  function instUi(){
+    var box = $('instBox');
+    if(!box) return;
+    if(standalone){ box.hidden = true; return; }
+    box.hidden = false;
+    $('installBtn').hidden = !deferred;
+    $('instHint').textContent = deferred
+      ? 'האפליקציה נפתחת במסך מלא ועובדת גם בלי חיבור לאינטרנט.'
+      : (isIOS
+        ? 'ב־Safari: לחצו על שיתוף ואז על ״הוספה למסך הבית״.'
+        : 'אם אין כפתור התקנה: בתפריט של Chrome (שלוש נקודות) בחרו ״התקנת אפליקציה״ או ״הוספה למסך הבית״.');
+  }
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred = e; instUi(); });
+  window.addEventListener('appinstalled',function(){ deferred = null; standalone = true; instUi(); });
+  $('installBtn').addEventListener('click',function(){
+    if(!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function(){ deferred = null; instUi(); }, function(){});
+  });
+  instUi();
+  if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+    window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  }
+  /*PWA-END*/
+
+  renderSong();
+  updateControls();
+  setPlayUi();
+})();
+</script>
+</body>
+</html>
