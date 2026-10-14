@@ -134,6 +134,11 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .kopt[aria-current="true"]{border-color:var(--accent);background:var(--accent-bg)}
 .kopt[aria-current="true"] b{color:var(--accent)}
 .totop{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:64px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:19px;font-weight:700}
+.wl{display:flex;flex-wrap:wrap;align-items:flex-end;column-gap:.3em;row-gap:6px;font-size:calc(28px*var(--s))}
+.wd{display:flex;flex:none;align-items:flex-end}
+.sg{display:flex;flex-direction:column}
+.lx{display:block;min-height:1.45em;font-size:1em;line-height:1.45;font-weight:400;white-space:nowrap}
+.chord.ic{flex:none;min-width:0;text-align:right;padding:0 1px}
 .opt{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:64px;padding:10px 16px;border:1.5px solid var(--line);border-radius:12px;background:var(--bg)}
 .opt b{display:block;font-size:18px;font-weight:700}
 .opt small{font-size:14px;color:var(--muted)}
@@ -370,14 +375,14 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
       ],
       sections:[
         {name:'חלק א', lines:[
-          {c:['E'], l:'תהא השעה הזאת'},
-          {c:['F','Dm'], l:'שעת רחמים ועת רצון'},
-          {c:['E'], l:'מלפניך'}
+          {t:'[E]תהא השעה הזאת'},
+          {t:'שעת [F]רחמים ועת [Dm]רצון'},
+          {t:'מלפניך[E]'}
         ]},
         {name:'חלק ב', lines:[
-          {c:['E','Am'], l:'תהא השעה הזאת'},
-          {c:['F','E','F'], l:'שעת רחמים ועת רצון'},
-          {c:['B','E4'], l:'מלפניך'}
+          {t:'[E]תהא השעה [Am]הזאת'},
+          {t:'[F]שעת [E]רחמים ועת [F]רצון'},
+          {t:'[B]מלפניך[E4]'}
         ]},
         {name:'סיום', lines:[
           {c:['E','Dm','E','E']}
@@ -385,7 +390,7 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
       ]
     }
   ];
-  /* Song data. A section line is {c:[one chord per measure]} or {m:[measures], ls:[lyric lines]}; a measure is 'Fmaj7', 'F G' (two chords) or '5/4 Fmaj7' (meter from here on).
+  /* Song data. A section line is {c:[one chord per measure]}, {m:[measures], ls:[lyric lines]} or {t:'lyric with [Chord] markers'} (chords over the words); a measure is 'Fmaj7', 'F G' (two chords) or '5/4 Fmaj7' (meter from here on).
      {note:'text'} is a standalone note, line.n a note under a line, song.note a note under the title. Notes show only while "הצג הערות" is on.
      structure lists the full playing order. An entry is a section name or {name, x, who, take, label, chip, note}:
      x writes the section out x times, who names the performer of each repeat, take plays only the first N lines,
@@ -465,6 +470,34 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     });
     if(cur.length) out.push(cur);
     return out;
+  }
+
+  /* a lyric line with the chords over the words they are played on: 'שעת [F]רחמים' puts F over the start of רחמים,
+     'מל[E]פניך' puts E over פניך, and a chord after the last letter ('מלפניך[E]') sits at the end of the word */
+  function chordLyric(str){
+    var wl = h('div','wl');
+    str.split(/\s+/).forEach(function(word){
+      if(!word) return;
+      var wd = h('div','wd'), parts = [], cur = null, m, re = /\[([^\]]+)\]|([^\[\]]+)/g;
+      while((m = re.exec(word))){
+        if(m[1] !== undefined){ cur = {c:m[1], t:''}; parts.push(cur); }
+        else if(cur && cur.t === ''){ cur.t = m[2]; cur = null; }
+        else parts.push({c:null, t:m[2]});
+      }
+      parts.forEach(function(p){
+        var sg = h('span','sg');
+        if(p.c){
+          var cb = h('button','chord ic',tr(p.c));
+          cb.type = 'button';
+          cb.setAttribute('aria-label','האקורד '+tr(p.c)+', הצגה על המקלדת');
+          sg.appendChild(cb);
+        }
+        sg.appendChild(h('span','lx',p.t));
+        wd.appendChild(sg);
+      });
+      wl.appendChild(wd);
+    });
+    return wl;
   }
 
   function noteEl(text){
@@ -581,6 +614,7 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
         (en.take ? sec.lines.slice(0,en.take) : sec.lines).forEach(function(line){
           if(line.note){ if(showNotes) s.appendChild(noteEl(line.note)); return; }
           var ln = h('div','ln');
+          if(line.t) ln.appendChild(chordLyric(line.t));
           measureRows(lineMeasures(line),cap).forEach(function(row){
             var r = h('div','crow');
             if(row.some(function(x){ return x.m; })) r.className += ' hm';
