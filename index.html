@@ -602,8 +602,8 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
   }
 
   function setPlayUi(){
-    $('icPlay').hidden = playing;
-    $('icPause').hidden = !playing;
+    $('icPlay').toggleAttribute('hidden', playing);
+    $('icPause').toggleAttribute('hidden', !playing);
     $('play').setAttribute('aria-label', playing ? 'עצירת הגלילה' : 'הפעלת גלילה אוטומטית');
   }
 
