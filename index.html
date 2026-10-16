@@ -50,6 +50,10 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline
 svg{display:block}
 
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.instTop{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;width:48px;min-height:48px;padding:0;border:0;border-radius:12px;background:var(--accent);color:var(--on-accent);font-size:15px;font-weight:700}
+.instTop span{display:none}
+.instTop[hidden]{display:none}
+@media (min-width:520px){.instTop{width:auto;padding:0 14px}.instTop span{display:inline}}
 .top-in{max-width:720px;margin:0 auto;padding:10px 20px;display:flex;gap:10px}
 .pick{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:58px;padding:6px 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;color:var(--ink);text-align:right}
 .pick-txt{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
@@ -163,6 +167,12 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
         <span class="pick-txt"><small>הרכב מוזיקלי תשפ״ז</small><strong id="curTitle"></strong></span>
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
+      <!--PWA-START-->
+      <button id="topInstall" class="instTop" type="button" aria-label="התקן אפליקציה" title="התקן אפליקציה" hidden>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>
+        <span>התקן אפליקציה</span>
+      </button>
+      <!--PWA-END-->
       <button id="gear" class="iconbtn" type="button" aria-haspopup="dialog" aria-controls="settings" aria-label="הגדרות">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h9M19 7h1M4 17h1M11 17h9"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg>
       </button>
@@ -934,10 +944,17 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
   var deferred = null;
   var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var KEY = 'hm-installed';
+  function wasInstalled(){ try{ return localStorage.getItem(KEY) === '1'; }catch(e){ return false; } }
+  function setInstalled(v){ try{ if(v) localStorage.setItem(KEY,'1'); else localStorage.removeItem(KEY); }catch(e){} }
+  var relatedInstalled = false;
   function instUi(){
+    var installed = standalone || relatedInstalled || (wasInstalled() && !deferred);
+    var top = $('topInstall');
+    if(top) top.hidden = installed || !(deferred || isIOS);
     var box = $('instBox');
     if(!box) return;
-    if(standalone){ box.hidden = true; return; }
+    if(installed){ box.hidden = true; return; }
     box.hidden = false;
     $('installBtn').hidden = !deferred;
     $('instHint').textContent = deferred
@@ -946,13 +963,24 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
         ? 'ב־Safari: לחצו על שיתוף ואז על ״הוספה למסך הבית״.'
         : 'אם אין כפתור התקנה: בתפריט של Chrome (שלוש נקודות) בחרו ״התקנת אפליקציה״ או ״הוספה למסך הבית״.');
   }
-  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred = e; instUi(); });
-  window.addEventListener('appinstalled',function(){ deferred = null; standalone = true; instUi(); });
-  $('installBtn').addEventListener('click',function(){
-    if(!deferred) return;
-    deferred.prompt();
-    deferred.userChoice.then(function(){ deferred = null; instUi(); }, function(){});
-  });
+  /* Chrome only fires beforeinstallprompt when the app is not installed, so the event itself proves it is not installed */
+  window.addEventListener('beforeinstallprompt',function(e){ e.preventDefault(); deferred = e; setInstalled(false); instUi(); });
+  window.addEventListener('appinstalled',function(){ deferred = null; standalone = true; setInstalled(true); instUi(); });
+  function doInstall(){
+    if(deferred){
+      deferred.prompt();
+      deferred.userChoice.then(function(r){ if(r && r.outcome === 'accepted') setInstalled(true); deferred = null; instUi(); }, function(){});
+    }else{
+      $('gear').click();
+    }
+  }
+  $('installBtn').addEventListener('click',doInstall);
+  $('topInstall').addEventListener('click',doInstall);
+  try{
+    if(navigator.getInstalledRelatedApps){
+      navigator.getInstalledRelatedApps().then(function(a){ if(a && a.length){ relatedInstalled = true; instUi(); } }, function(){});
+    }
+  }catch(e){}
   instUi();
   if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
     window.addEventListener('load',function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
