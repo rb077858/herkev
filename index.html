@@ -135,7 +135,7 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .kopt[aria-current="true"] b{color:var(--accent)}
 .cwarn{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;padding:16px;border:3px solid #D97706;border-radius:14px;background:#FEF3C7;color:#78350F;font-size:17px;font-weight:500;line-height:1.5}
 .cwarn strong{font-size:21px;font-weight:800}
-.cwarn button{align-self:flex-start;min-height:48px;padding:6px 22px;border-radius:99px;border:0;background:#B45309;color:#fff;font-size:18px;font-weight:700}
+
 .totop{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:64px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:19px;font-weight:700}
 .wl{display:flex;flex-wrap:wrap;align-items:flex-end;column-gap:.3em;row-gap:6px;font-size:calc(28px*var(--s))}
 .wd{display:flex;flex:none;align-items:flex-end}
@@ -368,17 +368,9 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
       id:'taha-hasha-a-hazot',
       chordsIssue:true,
       title:'תהא השעה הזאת',
-      meter:'4/4',
       key:'D',
-      flatTonics:[0,1,2,3,5,7,8,9,10],
-      structure:[ 'אקורדים', 'מילים' ],
+      structure:[ 'מילים' ],
       sections:[
-        {name:'אקורדים', chordsOnly:true, label:'אקורדים · לא צמודים למילים', lines:[
-          {m:['D','D Gm','Eb Cm','Aø D']},
-          {m:['D','D Gm','Eb Cm','Aø D']},
-          {m:['D Gm','Gm D','D Eb','A7 D']},
-          {m:['D Gm','Gm D','D Eb','Cm D Gm'], n:'בתיבה האחרונה: Cm פעימה אחת, D פעימה אחת, ו־Gm עד סוף התיבה'}
-        ]},
         {name:'מילים', lines:[
           {l:'תהא השעה הזאת'},
           {l:'שעת רחמים ועת רצון'},
@@ -537,10 +529,8 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     rerenderKeepPlace(focusId);
   }
 
-  var lyricsOnly = false, lyricsFor = null;
   function renderSong(){
-    if(lyricsFor !== song.id){ lyricsFor = song.id; lyricsOnly = false; }
-    var lo = !!(song.chordsIssue && lyricsOnly);
+    var lo = !!song.chordsIssue;
     main.textContent = '';
     main.style.setProperty('--s', SCALES[scaleI]);
     $('curTitle').textContent = song.title;
@@ -574,12 +564,8 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     wrap.appendChild(head);
     if(song.chordsIssue){
       var cw = h('div','cwarn');
-      cw.appendChild(h('strong',null,lo ? 'מוצגות המילים בלבד' : '⚠ שימו לב: ייתכן שהאקורדים בשיר הזה בעייתיים'));
-      if(!lo) cw.appendChild(h('span',null,'האקורדים עדיין לא אומתו. אפשר לעבור לתצוגת מילים בלבד.'));
-      var cwb = h('button',null,lo ? 'חזרה לאקורדים' : 'מעבר למילים בלבד');
-      cwb.type = 'button';
-      cwb.addEventListener('click',function(){ lyricsOnly = !lyricsOnly; renderSong(); window.scrollTo(0,0); });
-      cw.appendChild(cwb);
+      cw.appendChild(h('strong',null,'⚠ כרגע אין אקורדים לשיר הזה באתר'));
+      cw.appendChild(h('span',null,'מוצגות המילים בלבד.'));
       wrap.appendChild(cw);
     }
     if(!lo && showNotes && song.note) wrap.appendChild(noteEl(song.note));
