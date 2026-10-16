@@ -133,7 +133,9 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .kopt small{font-size:13px;color:var(--muted);line-height:1.2}
 .kopt[aria-current="true"]{border-color:var(--accent);background:var(--accent-bg)}
 .kopt[aria-current="true"] b{color:var(--accent)}
-.cwarn{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;padding:14px 16px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:17px;font-weight:500;line-height:1.5}
+.cwarn{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;padding:16px;border:3px solid #D97706;border-radius:14px;background:#FEF3C7;color:#78350F;font-size:17px;font-weight:500;line-height:1.5}
+.cwarn strong{font-size:21px;font-weight:800}
+.cwarn button{align-self:flex-start;min-height:48px;padding:6px 22px;border-radius:99px;border:0;background:#B45309;color:#fff;font-size:18px;font-weight:700}
 .totop{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:64px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:19px;font-weight:700}
 .wl{display:flex;flex-wrap:wrap;align-items:flex-end;column-gap:.3em;row-gap:6px;font-size:calc(28px*var(--s))}
 .wd{display:flex;flex:none;align-items:flex-end}
@@ -366,28 +368,21 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
       id:'taha-hasha-a-hazot',
       chordsIssue:true,
       title:'תהא השעה הזאת',
-      key:'E',
+      meter:'4/4',
+      key:'D',
       flatTonics:[0,1,2,3,5,7,8,9,10],
-      structure:[
-        {name:'חלק א',x:2},{name:'חלק ב',x:2},
-        {name:'חלק א',x:2},{name:'חלק ב',x:2},
-        {name:'חלק א',x:2},{name:'חלק ב',x:2},
-        'חלק א',
-        {name:'סיום',x:4}
-      ],
+      structure:[ 'אקורדים', 'מילים' ],
       sections:[
-        {name:'חלק א', lines:[
-          {c:['E'], l:'תהא השעה הזאת'},
-          {c:['F','Dm'], l:'שעת רחמים ועת רצון'},
-          {c:['E'], l:'מלפניך'}
+        {name:'אקורדים', chordsOnly:true, label:'אקורדים · לא צמודים למילים', lines:[
+          {m:['D','D Gm','Eb Cm','Aø D']},
+          {m:['D','D Gm','Eb Cm','Aø D']},
+          {m:['D Gm','Gm D','D Eb','A7 D']},
+          {m:['D Gm','Gm D','D Eb','Cm D Gm'], n:'בתיבה האחרונה: Cm פעימה אחת, D פעימה אחת, ו־Gm עד סוף התיבה'}
         ]},
-        {name:'חלק ב', lines:[
-          {c:['E','Am'], l:'תהא השעה הזאת'},
-          {c:['F','E','F'], l:'שעת רחמים ועת רצון'},
-          {c:['B','E4'], l:'מלפניך'}
-        ]},
-        {name:'סיום', lines:[
-          {c:['E','Dm','E','E']}
+        {name:'מילים', lines:[
+          {l:'תהא השעה הזאת'},
+          {l:'שעת רחמים ועת רצון'},
+          {l:'מלפניך'}
         ]}
       ]
     }
@@ -542,8 +537,10 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     rerenderKeepPlace(focusId);
   }
 
+  var lyricsOnly = false, lyricsFor = null;
   function renderSong(){
-    var lo = !!song.chordsIssue;
+    if(lyricsFor !== song.id){ lyricsFor = song.id; lyricsOnly = false; }
+    var lo = !!(song.chordsIssue && lyricsOnly);
     main.textContent = '';
     main.style.setProperty('--s', SCALES[scaleI]);
     $('curTitle').textContent = song.title;
@@ -577,7 +574,12 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     wrap.appendChild(head);
     if(song.chordsIssue){
       var cw = h('div','cwarn');
-      cw.appendChild(h('span',null,'בעיה עם האקורדים בשיר הספציפי הזה, לכן מוצגות המילים בלבד.'));
+      cw.appendChild(h('strong',null,lo ? 'מוצגות המילים בלבד' : '⚠ שימו לב: ייתכן שהאקורדים בשיר הזה בעייתיים'));
+      if(!lo) cw.appendChild(h('span',null,'האקורדים עדיין לא אומתו. אפשר לעבור לתצוגת מילים בלבד.'));
+      var cwb = h('button',null,lo ? 'חזרה לאקורדים' : 'מעבר למילים בלבד');
+      cwb.type = 'button';
+      cwb.addEventListener('click',function(){ lyricsOnly = !lyricsOnly; renderSong(); window.scrollTo(0,0); });
+      cw.appendChild(cwb);
       wrap.appendChild(cw);
     }
     if(!lo && showNotes && song.note) wrap.appendChild(noteEl(song.note));
@@ -586,7 +588,10 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     order.setAttribute('aria-label','סדר השיר');
     order.appendChild(h('span','olab','סדר'));
     /* structure entries are a section name or {name, x}; x repeats the section and every repeat is written out in full */
-    var entries = song.structure.map(function(e){
+    var entries = song.structure.filter(function(e){
+      var nm = typeof e === 'string' ? e : e.name;
+      return !(lo && song.sections.some(function(x){ return x.name===nm && x.chordsOnly; }));
+    }).map(function(e){
       var o = {x:1};
       if(typeof e === 'string') o.name = e;
       else for(var k in e) o[k] = e[k];
