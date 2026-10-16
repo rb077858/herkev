@@ -134,7 +134,6 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .kopt[aria-current="true"]{border-color:var(--accent);background:var(--accent-bg)}
 .kopt[aria-current="true"] b{color:var(--accent)}
 .cwarn{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;padding:14px 16px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:17px;font-weight:500;line-height:1.5}
-.cwarn button{align-self:flex-start;min-height:44px;padding:6px 20px;border-radius:99px;border:0;background:var(--accent);color:var(--on-accent);font-size:17px;font-weight:700}
 .totop{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:64px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:19px;font-weight:700}
 .wl{display:flex;flex-wrap:wrap;align-items:flex-end;column-gap:.3em;row-gap:6px;font-size:calc(28px*var(--s))}
 .wd{display:flex;flex:none;align-items:flex-end}
@@ -543,10 +542,8 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     rerenderKeepPlace(focusId);
   }
 
-  var lyricsOnly = false, lyricsFor = null;
   function renderSong(){
-    if(lyricsFor !== song.id){ lyricsFor = song.id; lyricsOnly = false; }
-    var lo = !!(song.chordsIssue && lyricsOnly);
+    var lo = !!song.chordsIssue;
     main.textContent = '';
     main.style.setProperty('--s', SCALES[scaleI]);
     $('curTitle').textContent = song.title;
@@ -580,11 +577,7 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     wrap.appendChild(head);
     if(song.chordsIssue){
       var cw = h('div','cwarn');
-      cw.appendChild(h('span',null,lo ? 'מוצגות המילים בלבד, בלי אקורדים.' : 'בעיה עם האקורדים בשיר הספציפי הזה, תוכלו לגשת רק למילים.'));
-      var cwb = h('button',null,lo ? 'חזרה לאקורדים' : 'מעבר למילים בלבד');
-      cwb.type = 'button';
-      cwb.addEventListener('click',function(){ lyricsOnly = !lyricsOnly; renderSong(); window.scrollTo(0,0); });
-      cw.appendChild(cwb);
+      cw.appendChild(h('span',null,'בעיה עם האקורדים בשיר הספציפי הזה, לכן מוצגות המילים בלבד.'));
       wrap.appendChild(cw);
     }
     if(!lo && showNotes && song.note) wrap.appendChild(noteEl(song.note));
