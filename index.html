@@ -133,6 +133,8 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
 .kopt small{font-size:13px;color:var(--muted);line-height:1.2}
 .kopt[aria-current="true"]{border-color:var(--accent);background:var(--accent-bg)}
 .kopt[aria-current="true"] b{color:var(--accent)}
+.cwarn{display:flex;flex-direction:column;gap:10px;margin:0 0 18px;padding:14px 16px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:17px;font-weight:500;line-height:1.5}
+.cwarn button{align-self:flex-start;min-height:44px;padding:6px 20px;border-radius:99px;border:0;background:var(--accent);color:var(--on-accent);font-size:17px;font-weight:700}
 .totop{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:64px;border:1.5px solid var(--accent);border-radius:14px;background:var(--accent-bg);color:var(--accent-ink);font-size:19px;font-weight:700}
 .wl{display:flex;flex-wrap:wrap;align-items:flex-end;column-gap:.3em;row-gap:6px;font-size:calc(28px*var(--s))}
 .wd{display:flex;flex:none;align-items:flex-end}
@@ -363,6 +365,7 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     },
     {
       id:'taha-hasha-a-hazot',
+      chordsIssue:true,
       title:'תהא השעה הזאת',
       key:'E',
       flatTonics:[0,1,2,3,5,7,8,9,10],
@@ -540,7 +543,10 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     rerenderKeepPlace(focusId);
   }
 
+  var lyricsOnly = false, lyricsFor = null;
   function renderSong(){
+    if(lyricsFor !== song.id){ lyricsFor = song.id; lyricsOnly = false; }
+    var lo = !!(song.chordsIssue && lyricsOnly);
     main.textContent = '';
     main.style.setProperty('--s', SCALES[scaleI]);
     $('curTitle').textContent = song.title;
@@ -555,11 +561,11 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
     brand.appendChild(logo);
     wrap.appendChild(brand);
 
-    wrap.appendChild(buildKeybar());
+    if(!lo) wrap.appendChild(buildKeybar());
 
     var head = h('div','head');
     var tt = h('div');
-    tt.appendChild(h('p','eyebrow','אקורדים ומילים'));
+    tt.appendChild(h('p','eyebrow',lo ? 'מילים בלבד' : 'אקורדים ומילים'));
     tt.appendChild(h('h1',null,song.title));
     head.appendChild(tt);
     if(song.meter){
@@ -572,7 +578,16 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
       head.appendChild(m);
     }
     wrap.appendChild(head);
-    if(showNotes && song.note) wrap.appendChild(noteEl(song.note));
+    if(song.chordsIssue){
+      var cw = h('div','cwarn');
+      cw.appendChild(h('span',null,lo ? 'מוצגות המילים בלבד, בלי אקורדים.' : 'בעיה עם האקורדים בשיר הספציפי הזה, תוכלו לגשת רק למילים.'));
+      var cwb = h('button',null,lo ? 'חזרה לאקורדים' : 'מעבר למילים בלבד');
+      cwb.type = 'button';
+      cwb.addEventListener('click',function(){ lyricsOnly = !lyricsOnly; renderSong(); window.scrollTo(0,0); });
+      cw.appendChild(cwb);
+      wrap.appendChild(cw);
+    }
+    if(!lo && showNotes && song.note) wrap.appendChild(noteEl(song.note));
 
     var order = h('nav','order');
     order.setAttribute('aria-label','סדר השיר');
@@ -610,12 +625,12 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
         lb.appendChild(h('span',null,(en.label || sec.label || sec.name) + suffix));
         lb.appendChild(h('i'));
         s.appendChild(lb);
-        if(showNotes && en.note) s.appendChild(noteEl(en.note));
+        if(!lo && showNotes && en.note) s.appendChild(noteEl(en.note));
         (en.take ? sec.lines.slice(0,en.take) : sec.lines).forEach(function(line){
-          if(line.note){ if(showNotes) s.appendChild(noteEl(line.note)); return; }
+          if(line.note){ if(showNotes && !lo) s.appendChild(noteEl(line.note)); return; }
           var ln = h('div','ln');
-          if(line.t) ln.appendChild(chordLyric(line.t));
-          measureRows(lineMeasures(line),cap).forEach(function(row){
+          if(line.t && !lo) ln.appendChild(chordLyric(line.t));
+          if(!lo) measureRows(lineMeasures(line),cap).forEach(function(row){
             var r = h('div','crow');
             if(row.some(function(x){ return x.m; })) r.className += ' hm';
             row.forEach(function(x){
@@ -634,7 +649,7 @@ h1{margin:0;font-family:var(--display);font-weight:700;font-size:clamp(44px,13vw
           });
           (line.ls || (line.l ? [line.l] : [])).forEach(function(t){ ln.appendChild(h('p','ly',t)); });
           s.appendChild(ln);
-          if(showNotes && line.n && (!line.nRep || (en.x > 1 && line.nRep === rep))) s.appendChild(noteEl(line.n));
+          if(!lo && showNotes && line.n && (!line.nRep || (en.x > 1 && line.nRep === rep))) s.appendChild(noteEl(line.n));
         });
         wrap.appendChild(s);
       }
